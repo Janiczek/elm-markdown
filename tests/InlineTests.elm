@@ -92,6 +92,11 @@ suite =
                 """[link](/url\u{00A0}"title")"""
                     |> expectInlines
                         [ Inlines.Link "/url%C2%A0%22title%22" Nothing [ Inlines.Text "link" ] ]
+        , test "angle-wrapped link should parse fine" <|
+            \() ->
+                """[Test](<http://example.org>)"""
+                    |> expectInlines
+                        [ Inlines.Link "http://example.org" Nothing [ Inlines.Text "Test" ] ]
         , test "link title after an angle-wrapped destination" <|
             \() ->
                 "[link](<foo(bar(baz)> (title))"

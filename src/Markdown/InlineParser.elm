@@ -1167,12 +1167,44 @@ organizeMatchesHelp remaining (Match prevMatch) matchesTail =
                 organizeMatchesHelp rest (Match match) (organizeChildren (Match prevMatch) :: matchesTail)
 
             else if prevMatch.start < match.start && prevMatch.end > match.end then
-                -- Inside previous Match, merge it
-                organizeMatchesHelp rest (addChild prevMatch match) matchesTail
+                {- Link/image matches span `[label](destination)`; only the label
+                   lies between textStart and textEnd. A match in the parenthesis
+                   (e.g. autolink `<http://…>`) must not become label children.
+                -}
+                if isLinkOrImageMatch prevMatch && not (isInsideLinkOrImageLabel prevMatch match) then
+                    {- Destination/title matches must stay after the link in document
+                       order for parseTextMatches (cons organizes tail first in other branches).
+                    -}
+                    organizeChildren (Match prevMatch)
+                        :: organizeMatchesHelp rest (Match match) matchesTail
+
+                else
+                    -- Inside previous Match, merge it
+                    organizeMatchesHelp rest (addChild prevMatch match) matchesTail
 
             else
                 -- Overlaping previous Match, ignore it
                 organizeMatchesHelp rest (Match prevMatch) matchesTail
+
+
+isLinkOrImageMatch : MatchModel -> Bool
+isLinkOrImageMatch match =
+    case match.type_ of
+        LinkType _ ->
+            True
+
+        ImageType _ ->
+            True
+
+        _ ->
+            False
+
+
+{-| Label region only (between `[` and `]`), not the inline destination/title.
+-}
+isInsideLinkOrImageLabel : MatchModel -> MatchModel -> Bool
+isInsideLinkOrImageLabel parent child =
+    child.start >= parent.textStart && child.end <= parent.textEnd
 
 
 addChild : MatchModel -> MatchModel -> Match
